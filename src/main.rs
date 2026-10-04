@@ -33,14 +33,14 @@ fn main() {
     };
     config.is_demo = is_demo;
 
-    let app = RelmApp::new("com.magnotec.obelisk");
+    let app = RelmApp::new("io.github.irelandqlan.Obelisk");
 
     // ── Register icon search path so GTK finds our bundled SVGs ──────────
     // GTK must be initialised (i.e. RelmApp created) before touching the
     // default display / icon theme.
     if let Some(display) = gtk::gdk::Display::default() {
         let icon_theme = gtk::IconTheme::for_display(&display);
-        icon_theme.add_resource_path("/com/magnotec/obelisk/icons");
+        icon_theme.add_resource_path("/io/github/irelandqlan/Obelisk/icons");
     }
 
     relm4::set_global_css(

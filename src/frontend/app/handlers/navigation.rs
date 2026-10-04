@@ -27,12 +27,12 @@ impl AppModel {
 
     pub(crate) fn handle_open_about(&self) {
         let about = adw::AboutDialog::builder()
-            .application_name("Obelisk Launcher")
+            .application_name("Obelisk")
             .version(env!("CARGO_PKG_VERSION"))
-            .developer_name("Magnotec")
+            .developer_name("irelandqlan")
             .license_type(gtk::License::Gpl30)
-            .website("https://github.com/Magnotec1/obelisk-launcher")
-            .issue_url("https://github.com/Magnotec1/obelisk-launcher/issues")
+            .website("https://github.com/irelandqlan/obelisk")
+            .issue_url("https://github.com/irelandqlan/obelisk/issues")
             .comments(
                 "A modern Minecraft instance manager built with Rust and GTK4/Libadwaita. Designed around the same format as MultiMC/PolyMC/Prism Launcher, for compatibility.",
             )

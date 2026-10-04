@@ -1,6 +1,7 @@
 use keyring::Entry;
 
-const SERVICE_NAME: &str = "obelisk-launcher";
+const SERVICE_NAME: &str = "obelisk";
+const LEGACY_SERVICE_NAME: &str = "obelisk-launcher";
 
 pub struct CredentialStorage;
 
@@ -18,6 +19,16 @@ impl CredentialStorage {
     pub fn get_refresh_token(uuid: &str) -> Result<String, String> {
         let entry = Entry::new(SERVICE_NAME, uuid)
             .map_err(|e| format!("Keyring entry error: {}", e))?;
+        if let Ok(token) = entry.get_password() {
+            return Ok(token);
+        }
+        // Fallback to legacy service name if not found in new service name
+        if let Ok(legacy_entry) = Entry::new(LEGACY_SERVICE_NAME, uuid) {
+            if let Ok(token) = legacy_entry.get_password() {
+                let _ = entry.set_password(&token);
+                return Ok(token);
+            }
+        }
         entry
             .get_password()
             .map_err(|e| format!("Failed to retrieve token from keyring: {}", e))
@@ -25,6 +36,7 @@ impl CredentialStorage {
 
     /// Delete a refresh token from the system keyring.
     pub fn delete_refresh_token(uuid: &str) -> Result<(), String> {
+        let _ = Entry::new(LEGACY_SERVICE_NAME, uuid).map(|e| e.delete_credential());
         let entry = Entry::new(SERVICE_NAME, uuid)
             .map_err(|e| format!("Keyring entry error: {}", e))?;
         entry

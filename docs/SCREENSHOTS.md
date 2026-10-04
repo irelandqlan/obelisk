@@ -1,14 +1,14 @@
 # Screenshots
 
 <div align="center">
-  <img src="../data/com.magnotec.obelisk.svg" width="96" height="96" alt="Obelisk Icon">
+  <img src="../data/io.github.irelandqlan.Obelisk.svg" width="96" height="96" alt="Obelisk Icon">
 
   <p>Screenshots of the current interface</p>
 
   <p>
     <a href="../README.md">Back to README</a> &bull;
     <a href="../INSTALL.md">Install Guide</a> &bull;
-    <a href="https://github.com/Magnotec1/obelisk-launcher/issues">Issues</a>
+    <a href="https://github.com/irelandqlan/obelisk/issues">Issues</a>
   </p>
 </div>
 

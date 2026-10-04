@@ -27,10 +27,7 @@ pub struct LaunchOptions {
 
 impl Default for LaunchOptions {
     fn default() -> Self {
-        let home = PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".to_string()));
-
-        let mut mc_data = home.clone();
-        mc_data.push(".local/share/obelisk-launcher");
+        let mc_data = crate::config::Config::get_data_dir();
 
         Self {
             java_path: PathBuf::from("java"),
@@ -506,7 +503,7 @@ pub fn launch_instance(
     for jvm_arg in &jvm_args_template {
         let resolved = jvm_arg
             .replace("${natives_directory}", &natives_dir_str)
-            .replace("${launcher_name}", "obelisk-launcher")
+            .replace("${launcher_name}", "obelisk")
             .replace("${launcher_version}", env!("CARGO_PKG_VERSION"))
             .replace("${classpath}", &classpath_str)
             .replace(

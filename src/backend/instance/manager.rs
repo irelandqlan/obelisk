@@ -281,7 +281,7 @@ fn extract_icon_to_cache(
         .unwrap_or(icon_path_in_jar);
     if let Ok(mut icon_file) = archive.by_name(clean_path) {
         if let Some(proj_dirs) =
-            directories::ProjectDirs::from("com", "magnotec", "obelisk-launcher")
+            directories::ProjectDirs::from("io", "github.irelandqlan", "Obelisk")
         {
             let icons_dir = proj_dirs.cache_dir().join("icons");
             let _ = fs::create_dir_all(&icons_dir);

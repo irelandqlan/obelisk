@@ -73,33 +73,72 @@ impl Default for Config {
 
 impl Config {
     pub fn get_data_dir() -> PathBuf {
-        if let Some(base) = directories::BaseDirs::new() {
-            base.data_local_dir().join("obelisk-launcher")
+        let new_dir = if let Some(base) = directories::BaseDirs::new() {
+            base.data_local_dir().join("obelisk")
         } else {
             let home = PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".to_string()));
-            home.join(".local/share/obelisk-launcher")
+            home.join(".local/share/obelisk")
+        };
+        if !new_dir.exists() {
+            let legacy_dir = if let Some(base) = directories::BaseDirs::new() {
+                base.data_local_dir().join("obelisk-launcher")
+            } else {
+                let home = PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".to_string()));
+                home.join(".local/share/obelisk-launcher")
+            };
+            if legacy_dir.exists() {
+                return legacy_dir;
+            }
         }
+        new_dir
     }
 
     pub fn get_cache_dir() -> PathBuf {
-        if let Some(base) = directories::BaseDirs::new() {
-            base.cache_dir().join("obelisk-launcher")
+        let new_dir = if let Some(base) = directories::BaseDirs::new() {
+            base.cache_dir().join("obelisk")
         } else {
             let home = PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".to_string()));
-            home.join(".cache/obelisk-launcher")
+            home.join(".cache/obelisk")
+        };
+        if !new_dir.exists() {
+            let legacy_dir = if let Some(base) = directories::BaseDirs::new() {
+                base.cache_dir().join("obelisk-launcher")
+            } else {
+                let home = PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".to_string()));
+                home.join(".cache/obelisk-launcher")
+            };
+            if legacy_dir.exists() {
+                return legacy_dir;
+            }
         }
+        new_dir
     }
 
     fn config_path() -> PathBuf {
-        if let Some(base) = directories::BaseDirs::new() {
-            base.config_dir().join("obelisk-launcher").join("config.json")
+        let new_path = if let Some(base) = directories::BaseDirs::new() {
+            base.config_dir().join("obelisk").join("config.json")
         } else {
             let mut path = PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".to_string()));
             path.push(".config");
-            path.push("obelisk-launcher");
+            path.push("obelisk");
             path.push("config.json");
             path
+        };
+        if !new_path.exists() {
+            let legacy_path = if let Some(base) = directories::BaseDirs::new() {
+                base.config_dir().join("obelisk-launcher").join("config.json")
+            } else {
+                let mut path = PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".to_string()));
+                path.push(".config");
+                path.push("obelisk-launcher");
+                path.push("config.json");
+                path
+            };
+            if legacy_path.exists() {
+                return legacy_path;
+            }
         }
+        new_path
     }
 
     pub fn load() -> Self {

@@ -1,8 +1,8 @@
 [Desktop Entry]
-Name=Obelisk Launcher
+Name=Obelisk
 Comment=Manage and launch Minecraft instances
 Exec=obelisk
-Icon=com.magnotec.obelisk
+Icon=io.github.irelandqlan.Obelisk
 Terminal=false
 Type=Application
 Categories=Game;

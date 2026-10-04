@@ -1,7 +1,7 @@
 <div align="center">
-  <img src="data/com.magnotec.obelisk.svg" width="120" height="120" alt="Obelisk Logo">
+  <img src="data/io.github.irelandqlan.Obelisk.svg" width="120" height="120" alt="Obelisk Logo">
 
-  # Obelisk Launcher
+  # Obelisk
 
   A GTK4 and Libadwaita Minecraft launcher for the Linux desktop.
 
@@ -15,11 +15,11 @@
   <p>
     <a href="INSTALL.md">Install</a> &bull;
     <a href="docs/SCREENSHOTS.md">Screenshots</a> &bull;
-    <a href="https://github.com/Magnotec1/obelisk-launcher/issues">Issues</a>
+    <a href="https://github.com/irelandqlan/obelisk/issues">Issues</a>
   </p>
 
   <a href="docs/SCREENSHOTS.md">
-    <img src="docs/screenshots/readme/screenshot-combined.png" alt="Obelisk Launcher Preview" width="850">
+    <img src="docs/screenshots/readme/screenshot-combined.png" alt="Obelisk Preview" width="850">
   </a>
 </div>
 
@@ -72,13 +72,13 @@ Obelisk is built against the GNOME 50 runtime.
 
 ```bash
 # Install runtimes
-flatpak install flathub org.gnome.Platform//50 org.gnome.Sdk//50 org.freedesktop.Sdk.Extension.rust-stable//24.08
+flatpak install flathub org.gnome.Platform//50 org.gnome.Sdk//50 org.freedesktop.Sdk.Extension.rust-stable//25.08
 
 # Build and install locally
-flatpak-builder --user --install --force-clean build-dir flatpak/com.magnotec.obelisk.yaml
+flatpak-builder --user --install --force-clean build-dir flatpak/io.github.irelandqlan.Obelisk.yaml
 
 # Run
-flatpak run com.magnotec.obelisk
+flatpak run io.github.irelandqlan.Obelisk
 ```
 
 ### Native

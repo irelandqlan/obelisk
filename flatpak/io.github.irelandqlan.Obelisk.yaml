@@ -1,4 +1,4 @@
-app-id: com.magnotec.obelisk
+app-id: io.github.irelandqlan.Obelisk
 runtime: org.gnome.Platform
 runtime-version: '50'
 sdk: org.gnome.Sdk
@@ -29,9 +29,9 @@ modules:
     build-commands:
       - cargo build --release
       - install -Dm755 target/release/obelisk -t /app/bin/
-      - install -Dm644 flatpak/com.magnotec.obelisk.desktop -t /app/share/applications/
-      - VERSION=$(grep -m 1 '^version =' Cargo.toml | cut -d '"' -f 2) && sed -E "s/<release version=\"[^\"]*\"/<release version=\"$VERSION\"/" flatpak/com.magnotec.obelisk.metainfo.xml > flatpak/com.magnotec.obelisk.metainfo.xml.tmp && install -Dm644 flatpak/com.magnotec.obelisk.metainfo.xml.tmp /app/share/metainfo/com.magnotec.obelisk.metainfo.xml
-      - install -Dm644 data/com.magnotec.obelisk.svg -t /app/share/icons/hicolor/scalable/apps/
+      - install -Dm644 flatpak/io.github.irelandqlan.Obelisk.desktop -t /app/share/applications/
+      - VERSION=$(grep -m 1 '^version =' Cargo.toml | cut -d '"' -f 2) && sed -E "s/<release version=\"[^\"]*\"/<release version=\"$VERSION\"/" flatpak/io.github.irelandqlan.Obelisk.metainfo.xml > flatpak/io.github.irelandqlan.Obelisk.metainfo.xml.tmp && install -Dm644 flatpak/io.github.irelandqlan.Obelisk.metainfo.xml.tmp /app/share/metainfo/io.github.irelandqlan.Obelisk.metainfo.xml
+      - install -Dm644 data/io.github.irelandqlan.Obelisk.svg -t /app/share/icons/hicolor/scalable/apps/
       - mkdir -p /app/bin
       - |
         echo '#!/bin/sh

@@ -46,7 +46,7 @@ impl SimpleComponent for AppModel {
 
     view! {
         adw::Window {
-            set_title: Some("Obelisk Launcher"),
+            set_title: Some("Obelisk"),
             set_default_width: 900,
             set_default_height: 600,
             set_width_request: 450,

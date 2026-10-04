@@ -1,7 +1,7 @@
 use std::sync::LazyLock;
 use std::time::Duration;
 
-pub const USER_AGENT: &str = "obelisk-launcher-rs (github.com/magnotec/obelisk-launcher)";
+pub const USER_AGENT: &str = "obelisk-rs (github.com/irelandqlan/obelisk)";
 
 /// Global reusable HTTP client with connection pooling, keep-alive, and standard timeout.
 pub static HTTP_CLIENT: LazyLock<reqwest::blocking::Client> = LazyLock::new(|| {

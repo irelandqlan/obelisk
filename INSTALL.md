@@ -1,14 +1,14 @@
 <div align="center">
-  <img src="data/com.magnotec.obelisk.svg" width="96" height="96" alt="Obelisk Icon">
+  <img src="data/io.github.irelandqlan.Obelisk.svg" width="96" height="96" alt="Obelisk Icon">
 
   # Installation Guide
 
-  Instructions for building and running Obelisk Launcher either through Flatpak or natively with Cargo.
+  Instructions for building and running Obelisk either through Flatpak or natively with Cargo.
 
   <p>
     <a href="README.md">Back to README</a> &bull;
     <a href="docs/SCREENSHOTS.md">Screenshots</a> &bull;
-    <a href="https://github.com/Magnotec1/obelisk-launcher/issues">Issues</a>
+    <a href="https://github.com/irelandqlan/obelisk/issues">Issues</a>
   </p>
 </div>
 
@@ -53,8 +53,8 @@ sudo pacman -Syu base-devel pkgconf openssl gtk4 libadwaita unzip tar
 With a current stable Rust toolchain (via [rustup](https://rustup.rs/)):
 
 ```bash
-git clone https://github.com/Magnotec1/obelisk-launcher.git
-cd obelisk-launcher
+git clone https://github.com/irelandqlan/obelisk.git
+cd obelisk
 
 # Run in debug mode
 cargo run
@@ -86,7 +86,7 @@ flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.f
 Obelisk targets the GNOME 50 platform runtime:
 
 ```bash
-flatpak install flathub org.gnome.Platform//50 org.gnome.Sdk//50 org.freedesktop.Sdk.Extension.rust-stable//24.08
+flatpak install flathub org.gnome.Platform//50 org.gnome.Sdk//50 org.freedesktop.Sdk.Extension.rust-stable//25.08
 ```
 
 ### Building and Installing the Flatpak
@@ -94,7 +94,7 @@ flatpak install flathub org.gnome.Platform//50 org.gnome.Sdk//50 org.freedesktop
 Build and install directly into your user environment:
 
 ```bash
-flatpak-builder --user --install --force-clean build-dir flatpak/com.magnotec.obelisk.yaml
+flatpak-builder --user --install --force-clean build-dir flatpak/io.github.irelandqlan.Obelisk.yaml
 ```
 
 Once installed, Obelisk will show up in your desktop environment's app launcher.
@@ -102,12 +102,12 @@ Once installed, Obelisk will show up in your desktop environment's app launcher.
 ### Running the Flatpak
 
 ```bash
-flatpak run com.magnotec.obelisk
+flatpak run io.github.irelandqlan.Obelisk
 ```
 
 Or run directly out of the build directory without installing to the system:
 ```bash
-flatpak-builder --run build-dir flatpak/com.magnotec.obelisk.yaml obelisk
+flatpak-builder --run build-dir flatpak/io.github.irelandqlan.Obelisk.yaml obelisk
 ```
 
 ### Creating an Offline Bundle
@@ -115,12 +115,12 @@ flatpak-builder --run build-dir flatpak/com.magnotec.obelisk.yaml obelisk
 To package a standalone `.flatpak` file for distribution:
 
 ```bash
-flatpak-builder --bundle build-dir flatpak/com.magnotec.obelisk.yaml com.magnotec.obelisk.flatpak
+flatpak-builder --bundle build-dir flatpak/io.github.irelandqlan.Obelisk.yaml io.github.irelandqlan.Obelisk.flatpak
 ```
 
 Install it with:
 ```bash
-flatpak install com.magnotec.obelisk.flatpak
+flatpak install io.github.irelandqlan.Obelisk.flatpak
 ```
 
 ## Runtime Requirements
@@ -132,5 +132,5 @@ flatpak install com.magnotec.obelisk.flatpak
 
 - **Flatpak filesystem access**: If you save instances on another drive or non-standard path, grant the Flatpak permission using [Flatseal](https://flathub.org/apps/com.github.tchx84.Flatseal) or override via CLI:
   ```bash
-  flatpak override --user --filesystem=/path/to/instances com.magnotec.obelisk
+  flatpak override --user --filesystem=/path/to/instances io.github.irelandqlan.Obelisk
   ```

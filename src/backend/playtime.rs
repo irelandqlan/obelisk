@@ -50,6 +50,20 @@ impl PlaytimeManager {
     fn file_path() -> PathBuf {
         let mut path = PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".to_string()));
         path.push(".config");
+        path.push("obelisk");
+        path.push("playtime.json");
+        if !path.exists() {
+            let legacy = Self::legacy_launcher_file_path();
+            if legacy.exists() {
+                return legacy;
+            }
+        }
+        path
+    }
+
+    fn legacy_launcher_file_path() -> PathBuf {
+        let mut path = PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".to_string()));
+        path.push(".config");
         path.push("obelisk-launcher");
         path.push("playtime.json");
         path
@@ -138,7 +152,7 @@ impl PlaytimeManager {
     pub fn load() -> Self {
         let path = Self::file_path();
         
-        // 1. Try to load the Obelisk Launcher playtime file if it exists
+        // 1. Try to load the Obelisk playtime file if it exists
         if path.exists() {
             match fs::read_to_string(&path) {
                 Ok(content) => {

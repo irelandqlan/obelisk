@@ -2,11 +2,11 @@ name: Build and Release Flatpak
 
 on:
   push:
-    branches: ["main"]
+    branches: ["master", "main"]
     tags:
       - "v*"
   pull_request:
-    branches: ["main"]
+    branches: ["master", "main"]
   workflow_dispatch:
 
 jobs:
@@ -29,15 +29,15 @@ jobs:
       - name: Build Flatpak Package
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
-          bundle: com.magnotec.obelisk.flatpak
-          manifest-path: flatpak/com.magnotec.obelisk.yaml
+          bundle: io.github.irelandqlan.Obelisk.flatpak
+          manifest-path: flatpak/io.github.irelandqlan.Obelisk.yaml
           cache-key: flatpak-builder-${{ github.sha }}
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: com.magnotec.obelisk.flatpak
+          files: io.github.irelandqlan.Obelisk.flatpak
           draft: false
           prerelease: false
         env:

@@ -174,7 +174,7 @@ impl SimpleComponent for SetupDialog {
     view! {
         #[name = "dialog"]
         adw::Dialog {
-            set_title: "Obelisk Launcher Setup Walkthrough",
+            set_title: "Obelisk Setup Walkthrough",
             set_content_width: 580,
             set_content_height: 520,
             set_can_close: true,
@@ -823,7 +823,7 @@ impl SimpleComponent for SetupDialog {
                         },
 
                         gtk::Label {
-                            set_markup: "<b>Next Steps:</b> Create your first instance in the using the <b>+ Add</b> button, configure your instance in the <b>Editor</b>, and hit <b>Play</b>! Obelisk Launcher is configured and fully primed to play Minecraft.",
+                            set_markup: "<b>Next Steps:</b> Create your first instance using the <b>+ Add</b> button, configure your instance in the <b>Editor</b>, and hit <b>Play</b>! Obelisk is configured and fully primed to play Minecraft.",
                             set_wrap: true,
                             set_max_width_chars: 50,
                             set_justify: gtk::Justification::Center,
