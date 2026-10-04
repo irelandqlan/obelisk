@@ -73,6 +73,17 @@ impl Default for Config {
 
 impl Config {
     pub fn get_data_dir() -> PathBuf {
+        if let Ok(home) = std::env::var("HOME") {
+            let host_obelisk = PathBuf::from(&home).join(".local/share/obelisk");
+            if host_obelisk.exists() {
+                return host_obelisk;
+            }
+            let host_legacy = PathBuf::from(&home).join(".local/share/obelisk-launcher");
+            if host_legacy.exists() {
+                return host_legacy;
+            }
+        }
+
         let new_dir = if let Some(base) = directories::BaseDirs::new() {
             base.data_local_dir().join("obelisk")
         } else {
@@ -94,6 +105,17 @@ impl Config {
     }
 
     pub fn get_cache_dir() -> PathBuf {
+        if let Ok(home) = std::env::var("HOME") {
+            let host_obelisk = PathBuf::from(&home).join(".cache/obelisk");
+            if host_obelisk.exists() {
+                return host_obelisk;
+            }
+            let host_legacy = PathBuf::from(&home).join(".cache/obelisk-launcher");
+            if host_legacy.exists() {
+                return host_legacy;
+            }
+        }
+
         let new_dir = if let Some(base) = directories::BaseDirs::new() {
             base.cache_dir().join("obelisk")
         } else {
@@ -115,6 +137,19 @@ impl Config {
     }
 
     fn config_path() -> PathBuf {
+        // First check directly under host $HOME/.config so Flatpak (running with --filesystem=host)
+        // shares and detects the config from the native `cargo run` version rather than isolating it.
+        if let Ok(home) = std::env::var("HOME") {
+            let host_obelisk = PathBuf::from(&home).join(".config/obelisk/config.json");
+            if host_obelisk.exists() {
+                return host_obelisk;
+            }
+            let host_legacy = PathBuf::from(&home).join(".config/obelisk-launcher/config.json");
+            if host_legacy.exists() {
+                return host_legacy;
+            }
+        }
+
         let new_path = if let Some(base) = directories::BaseDirs::new() {
             base.config_dir().join("obelisk").join("config.json")
         } else {
