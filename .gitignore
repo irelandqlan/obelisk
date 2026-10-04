@@ -1,2 +1,11 @@
+# Rust build artifacts
 /target
+
+# Flatpak build artifacts & caches
+/build-dir
+/.flatpak-builder
+/repo
+/*.flatpak
+
+# Tooling
 /.antigravitycli

@@ -1,4 +1,15 @@
-# Development Guide
+<div align="center">
+  <img src="../data/io.github.irelandqlan.Obelisk.svg" width="96" height="96" alt="Obelisk Icon">
+
+  # Development Guide
+
+  <p>
+    <a href="../README.md">Back to README</a> &bull;
+    <a href="INSTALL.md">Install Guide</a> &bull;
+    <a href="SCREENSHOTS.md">Screenshots</a> &bull;
+    <a href="https://github.com/irelandqlan/obelisk/issues">Issues</a>
+  </p>
+</div>
 
 This document outlines the development workflow, branch model, build tools, and release procedures for **Obelisk**. It is intended for both human contributors and AI coding assistants.
 

@@ -7,7 +7,8 @@
 
   <p>
     <a href="../README.md">Back to README</a> &bull;
-    <a href="../INSTALL.md">Install Guide</a> &bull;
+    <a href="INSTALL.md">Install Guide</a> &bull;
+    <a href="DEVELOPMENT.md">Development</a> &bull;
     <a href="https://github.com/irelandqlan/obelisk/issues">Issues</a>
   </p>
 </div>

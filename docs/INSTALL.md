@@ -1,14 +1,14 @@
 <div align="center">
-  <img src="data/io.github.irelandqlan.Obelisk.svg" width="96" height="96" alt="Obelisk Icon">
+  <img src="../data/io.github.irelandqlan.Obelisk.svg" width="96" height="96" alt="Obelisk Icon">
 
   # Installation Guide
 
   Instructions for building and running Obelisk either through Flatpak or natively with Cargo.
 
   <p>
-    <a href="README.md">Back to README</a> &bull;
+    <a href="../README.md">Back to README</a> &bull;
     <a href="DEVELOPMENT.md">Development</a> &bull;
-    <a href="docs/SCREENSHOTS.md">Screenshots</a> &bull;
+    <a href="SCREENSHOTS.md">Screenshots</a> &bull;
     <a href="https://github.com/irelandqlan/obelisk/issues">Issues</a>
   </p>
 </div>

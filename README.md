@@ -13,8 +13,8 @@
   </p>
 
   <p>
-    <a href="INSTALL.md">Install</a> &bull;
-    <a href="DEVELOPMENT.md">Development</a> &bull;
+    <a href="docs/INSTALL.md">Install</a> &bull;
+    <a href="docs/DEVELOPMENT.md">Development</a> &bull;
     <a href="docs/SCREENSHOTS.md">Screenshots</a> &bull;
     <a href="https://github.com/irelandqlan/obelisk/issues">Issues</a>
   </p>
@@ -94,4 +94,4 @@ sudo apt install build-essential pkg-config libssl-dev libgtk-4-dev libadwaita-1
 cargo run --release
 ```
 
-Detailed dependency lists for Fedora, Arch, and offline bundle creation are in [INSTALL.md](INSTALL.md).
+Detailed dependency lists for Fedora, Arch, and offline bundle creation are in [INSTALL.md](docs/INSTALL.md).
