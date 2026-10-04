@@ -83,7 +83,7 @@ pub struct AppModel {
 
     // Download / UI state
     pub(crate) loading_instances: bool,
-    pub(crate) launch_after_download: bool,
+    pub(crate) launch_after_download: Option<PathBuf>,
     pub(crate) toast_overlay: adw::ToastOverlay,
     pub(crate) active_editor_type: Option<EditorType>,
     pub(crate) is_narrow: bool,

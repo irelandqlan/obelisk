@@ -970,7 +970,7 @@ impl SimpleComponent for AppModel {
             default_console_buffer: gtk::TextBuffer::new(None),
             active_tab: "summary".to_string(),
             console_search_query: String::new(),
-            launch_after_download: false,
+            launch_after_download: None,
             toast_overlay: adw::ToastOverlay::new(),
             active_editor_type: None,
             is_narrow: false,
@@ -1307,6 +1307,7 @@ impl SimpleComponent for AppModel {
             AppMsg::ClearFinishedJobs => self.handle_clear_finished_jobs(),
             AppMsg::RetryJob(id) => self.handle_retry_job(&sender, id),
             AppMsg::OpenDownloadDetails => self.handle_open_download_details(),
+            AppMsg::ShowToast(msg) => crate::frontend::toast::show_toast(&self.window, msg),
         }
     }
 }

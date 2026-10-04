@@ -259,14 +259,15 @@ impl AppModel {
             self.download_dialog.emit(DownloadDialogInput::Refresh);
         }
 
-        if self.launch_after_download {
-            self.launch_after_download = false;
-            sender.input(AppMsg::LaunchInstance);
+        if let Some(target_path) = self.launch_after_download.take() {
+            if let Some(idx) = self.instances.iter().position(|i| i.path == target_path) {
+                sender.input(AppMsg::LaunchInstanceFromIndex(idx));
+            }
         }
     }
 
     pub(crate) fn handle_download_error(&mut self, err: String) {
-        self.launch_after_download = false;
+        self.launch_after_download = None;
         self.verifying_loading = false;
         self.installing_modpack = false;
         self.instance_summary

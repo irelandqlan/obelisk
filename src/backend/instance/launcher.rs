@@ -114,6 +114,67 @@ fn is_modern_minecraft_version(mc_version: &str) -> bool {
     false
 }
 
+#[derive(Default)]
+struct OrderedClasspath {
+    keys: Vec<String>,
+    paths: Vec<PathBuf>,
+}
+
+impl OrderedClasspath {
+    fn insert(&mut self, key: String, path: PathBuf) {
+        if let Some(pos) = self.keys.iter().position(|k| k == &key) {
+            self.paths[pos] = path;
+        } else {
+            self.keys.push(key);
+            self.paths.push(path);
+        }
+    }
+
+    fn into_paths(self) -> Vec<PathBuf> {
+        self.paths
+    }
+}
+
+fn parse_args_string(input: &str) -> Vec<String> {
+    let mut args = Vec::new();
+    let mut current = String::new();
+    let mut in_quotes = false;
+    let mut quote_char = ' ';
+
+    for c in input.chars() {
+        match c {
+            '"' | '\'' if !in_quotes => {
+                in_quotes = true;
+                quote_char = c;
+            }
+            c if in_quotes && c == quote_char => {
+                in_quotes = false;
+            }
+            ' ' | '\t' | '\r' | '\n' if !in_quotes => {
+                if !current.is_empty() {
+                    args.push(current);
+                    current = String::new();
+                }
+            }
+            _ => {
+                current.push(c);
+            }
+        }
+    }
+    if !current.is_empty() {
+        args.push(current);
+    }
+    args
+}
+
+fn substitute_vars(token: &str, vars: &[(&str, &str)]) -> String {
+    let mut s = token.to_string();
+    for (k, v) in vars {
+        s = s.replace(k, v);
+    }
+    s
+}
+
 pub fn launch_instance(
     instance: &Instance,
     options: LaunchOptions,
@@ -124,10 +185,9 @@ pub fn launch_instance(
     let pack: MmcPack = serde_json::from_str(&pack_content)
         .map_err(|e| format!("Failed to parse mmc-pack.json: {}", e))?;
 
-    let mut classpath_map: std::collections::HashMap<String, PathBuf> =
-        std::collections::HashMap::new();
+    let mut classpath_map = OrderedClasspath::default();
     let mut main_class = String::new();
-    let mut mc_args_template = String::new();
+    let mut game_arg_tokens: Vec<String> = Vec::new();
     let mut jvm_args_template: Vec<String> = Vec::new();
     let mut asset_index_id = String::from("legacy");
     let mut is_forge = false;
@@ -138,6 +198,11 @@ pub fn launch_instance(
     let mut extra_tweakers: Vec<String> = Vec::new();
 
     for component in &pack.components {
+        let is_loader = component.uid.contains("loader")
+            || component.uid.contains("forge")
+            || component.uid.contains("quilt")
+            || component.uid.contains("neoforged");
+
         // Track Forge component
         if component.uid == "net.minecraftforge" {
             is_forge = true;
@@ -168,7 +233,9 @@ pub fn launch_instance(
         if let Ok(meta_content) = fs::read_to_string(meta_path) {
             if let Ok(meta) = serde_json::from_str::<ComponentMeta>(&meta_content) {
                 if let Some(cls) = meta.main_class {
-                    main_class = cls;
+                    if main_class.is_empty() || is_loader {
+                        main_class = cls;
+                    }
                 }
                 // Collect +tweakers from Prism Meta (e.g. FMLTweaker for Forge)
                 for tweaker in &meta.tweakers {
@@ -176,19 +243,18 @@ pub fn launch_instance(
                         extra_tweakers.push(tweaker.clone());
                     }
                 }
-                if let Some(args) = meta.minecraft_arguments {
-                    mc_args_template = args;
-                } else if let Some(ref args) = meta.arguments {
-                    // Extract strings from the modern arguments structure
+                if let Some(ref args) = meta.arguments {
                     if let Some(ref game_args) = args.game {
                         for arg in game_args {
                             if let Some(s) = arg.as_str() {
-                                if !mc_args_template.is_empty() {
-                                    mc_args_template.push(' ');
-                                }
-                                mc_args_template.push_str(s);
+                                game_arg_tokens.push(s.to_string());
                             }
                         }
+                    }
+                } else if let Some(args) = meta.minecraft_arguments {
+                    let parsed = parse_args_string(&args);
+                    if !parsed.is_empty() {
+                        game_arg_tokens = parsed;
                     }
                 }
                 // Collect JVM args from modern arguments.jvm
@@ -381,7 +447,7 @@ pub fn launch_instance(
         .join(mc_version)
         .join(format!("minecraft-{}-client.jar", mc_version));
 
-    let mut classpath: Vec<PathBuf> = classpath_map.into_values().collect();
+    let mut classpath: Vec<PathBuf> = classpath_map.into_paths();
     if mc_client_jar_primary.exists() {
         classpath.push(mc_client_jar_primary);
     } else {
@@ -447,8 +513,9 @@ pub fn launch_instance(
     let natives_dir_str = natives_dir.to_string_lossy().to_string();
 
     // JVM Args
+    let min_mem = options.min_memory.min(options.max_memory);
     cmd.arg(format!("-Xmx{}M", options.max_memory));
-    cmd.arg(format!("-Xms{}M", options.min_memory));
+    cmd.arg(format!("-Xms{}M", min_mem));
     cmd.arg("-Duser.language=en");
 
     if instance.use_wayland {
@@ -579,65 +646,62 @@ pub fn launch_instance(
         ));
     }
 
+    if main_class.is_empty() {
+        return Err("No main class found in instance components or metadata.".to_string());
+    }
+
     cmd.arg("-cp").arg(classpath_str);
     cmd.arg(main_class);
 
     // Minecraft Args
-    if let Some(account) = &options.account {
-        let auth_player_name = &account.username;
-        let auth_uuid = &account.uuid;
-        let auth_access_token = &account.access_token;
+    let assets_dir = if options.mc_data_path.join("assets").exists() {
+        options.mc_data_path.join("assets")
+    } else {
+        options.shared_data_path.join("assets")
+    };
 
-        let assets_dir = if options.mc_data_path.join("assets").exists() {
-            options.mc_data_path.join("assets")
-        } else {
-            options.shared_data_path.join("assets")
-        };
-
-        // Use appropriate user_type based on account type
-        let user_type = match account.account_type {
+    let (auth_player_name, auth_uuid, auth_access_token, user_type) = if let Some(account) = &options.account {
+        let u_type = match account.account_type {
             crate::backend::auth::microsoft::AccountType::Microsoft => "msa",
             crate::backend::auth::microsoft::AccountType::Offline => "legacy",
         };
-
-        let args = mc_args_template
-            .replace("${auth_player_name}", auth_player_name)
-            .replace("${version_name}", mc_version)
-            .replace("${game_directory}", &minecraft_dir.to_string_lossy())
-            .replace("${assets_root}", &assets_dir.to_string_lossy())
-            .replace("${assets_index_name}", &asset_index_id)
-            .replace("${auth_uuid}", auth_uuid)
-            .replace("${auth_access_token}", auth_access_token)
-            .replace("${user_properties}", "{}")
-            .replace("${user_type}", user_type)
-            .replace("${version_type}", "release");
-
-        for arg in args.split_whitespace() {
-            cmd.arg(arg);
-        }
+        (account.username.as_str(), account.uuid.as_str(), account.access_token.as_str(), u_type)
     } else {
-        // No account at all — anonymous offline
-        let assets_dir = if options.mc_data_path.join("assets").exists() {
-            options.mc_data_path.join("assets")
-        } else {
-            options.shared_data_path.join("assets")
-        };
+        ("Player", "00000000-0000-0000-0000-000000000000", "0", "legacy")
+    };
 
-        let args = mc_args_template
-            .replace("${auth_player_name}", "Player")
-            .replace("${version_name}", mc_version)
-            .replace("${game_directory}", &minecraft_dir.to_string_lossy())
-            .replace("${assets_root}", &assets_dir.to_string_lossy())
-            .replace("${assets_index_name}", &asset_index_id)
-            .replace("${auth_uuid}", "00000000-0000-0000-0000-000000000000")
-            .replace("${auth_access_token}", "0")
-            .replace("${user_properties}", "{}")
-            .replace("${user_type}", "legacy")
-            .replace("${version_type}", "release");
+    let mc_dir_str = minecraft_dir.to_string_lossy();
+    let assets_dir_str = assets_dir.to_string_lossy();
+    let vars = [
+        ("${auth_player_name}", auth_player_name),
+        ("${version_name}", mc_version),
+        ("${game_directory}", mc_dir_str.as_ref()),
+        ("${assets_root}", assets_dir_str.as_ref()),
+        ("${assets_index_name}", asset_index_id.as_str()),
+        ("${auth_uuid}", auth_uuid),
+        ("${auth_access_token}", auth_access_token),
+        ("${user_properties}", "{}"),
+        ("${user_type}", user_type),
+        ("${version_type}", "release"),
+    ];
 
-        for arg in args.split_whitespace() {
-            cmd.arg(arg);
-        }
+    if game_arg_tokens.is_empty() {
+        game_arg_tokens = vec![
+            "--username".to_string(), "${auth_player_name}".to_string(),
+            "--version".to_string(), "${version_name}".to_string(),
+            "--gameDir".to_string(), "${game_directory}".to_string(),
+            "--assetsDir".to_string(), "${assets_root}".to_string(),
+            "--assetIndex".to_string(), "${assets_index_name}".to_string(),
+            "--uuid".to_string(), "${auth_uuid}".to_string(),
+            "--accessToken".to_string(), "${auth_access_token}".to_string(),
+            "--userType".to_string(), "${user_type}".to_string(),
+            "--versionType".to_string(), "${version_type}".to_string(),
+        ];
+    }
+
+    for token in &game_arg_tokens {
+        let resolved = substitute_vars(token, &vars);
+        cmd.arg(resolved);
     }
 
     // Append extra --tweakClass args from Prism Meta (e.g. Forge FMLTweaker)
@@ -714,16 +778,12 @@ pub fn check_instance_assets(instance: &Instance, options: &LaunchOptions) -> bo
                             "Critical component MISSING: {} (tried {:?} and fallback)",
                             component.uid, meta_path
                         );
-                        if component.uid == "net.fabricmc.fabric-loader"
-                            || component.uid == "net.minecraft"
-                        {
-                            return false;
-                        }
+                        return false;
                     }
                     continue;
                 }
 
-                // Briefly check libraries in meta
+                // Check libraries and asset index in meta
                 if let Ok(meta_content) = fs::read_to_string(meta_path) {
                     if let Ok(meta) = serde_json::from_str::<ComponentMeta>(&meta_content) {
                         if let Some(idx) = &meta.asset_index {
@@ -741,48 +801,6 @@ pub fn check_instance_assets(instance: &Instance, options: &LaunchOptions) -> bo
                             }
                             if !index_path.exists() {
                                 println!("Missing asset index: {}", idx.id);
-                                return false;
-                            }
-                            if let Ok(index_content) = fs::read_to_string(&index_path) {
-                                if let Ok(assets) = serde_json::from_str::<
-                                    crate::backend::core::mojang::AssetObjects,
-                                >(&index_content)
-                                {
-                                    for obj in assets.objects.values() {
-                                        let prefix = &obj.hash[0..2];
-                                        let mut path = options
-                                            .mc_data_path
-                                            .join("assets")
-                                            .join("objects")
-                                            .join(prefix)
-                                            .join(&obj.hash);
-                                        if !path.exists() {
-                                            path = options
-                                                .shared_data_path
-                                                .join("assets")
-                                                .join("objects")
-                                                .join(prefix)
-                                                .join(&obj.hash);
-                                        }
-                                        if !path.exists() {
-                                            println!("Missing asset: {}", obj.hash);
-                                            return false;
-                                        }
-                                        if let Ok(m) = path.metadata() {
-                                            if m.len() != obj.size {
-                                                println!("Corrupted asset: {}", obj.hash);
-                                                return false;
-                                            }
-                                        } else {
-                                            return false;
-                                        }
-                                    }
-                                } else {
-                                    println!("Failed to parse asset index: {}", idx.id);
-                                    return false;
-                                }
-                            } else {
-                                println!("Failed to read asset index: {}", idx.id);
                                 return false;
                             }
                         }
@@ -872,4 +890,49 @@ pub fn get_optimized_jvm_args(max_memory_mb: u32, java_major_version: u32) -> Ve
     args.push("-Dsun.java2d.noddraw=true".to_string());
 
     args
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_args_string_with_spaces_and_quotes() {
+        let input = r#"--username "Steve The Miner" --gameDir "/home/user/My Instances/1.20" --demo"#;
+        let parsed = parse_args_string(input);
+        assert_eq!(parsed, vec![
+            "--username",
+            "Steve The Miner",
+            "--gameDir",
+            "/home/user/My Instances/1.20",
+            "--demo"
+        ]);
+    }
+
+    #[test]
+    fn test_substitute_vars() {
+        let vars = [
+            ("${username}", "Alex"),
+            ("${game_dir}", "/home/user/.minecraft"),
+        ];
+        assert_eq!(substitute_vars("--user=${username}", &vars), "--user=Alex");
+        assert_eq!(substitute_vars("${game_dir}", &vars), "/home/user/.minecraft");
+    }
+
+    #[test]
+    fn test_ordered_classpath_preserves_order() {
+        let mut cp = OrderedClasspath::default();
+        cp.insert("a:lib1".to_string(), PathBuf::from("/lib1.jar"));
+        cp.insert("b:lib2".to_string(), PathBuf::from("/lib2.jar"));
+        cp.insert("c:lib3".to_string(), PathBuf::from("/lib3.jar"));
+        // Re-inserting existing key updates value in-place without changing position
+        cp.insert("b:lib2".to_string(), PathBuf::from("/lib2-updated.jar"));
+
+        let paths = cp.into_paths();
+        assert_eq!(paths, vec![
+            PathBuf::from("/lib1.jar"),
+            PathBuf::from("/lib2-updated.jar"),
+            PathBuf::from("/lib3.jar"),
+        ]);
+    }
 }

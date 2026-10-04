@@ -21,8 +21,8 @@ fn scan_flatpak_dir(base: &Path, versions: &mut Vec<JavaInstance>) {
         return;
     }
     for entry in walkdir::WalkDir::new(base)
-        .max_depth(9)
-        .follow_links(true)
+        .max_depth(5)
+        .follow_links(false)
         .into_iter()
         .filter_map(|e| e.ok())
     {

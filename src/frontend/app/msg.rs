@@ -129,6 +129,7 @@ pub enum AppMsg {
     RefreshAccountsRequest,
     ShowAddOfflineDialog,
     OpenAccountSettings,
+    ShowToast(String),
 
     // Launching
     LaunchInstance,

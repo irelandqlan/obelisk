@@ -28,6 +28,7 @@ impl AppModel {
     pub(crate) fn handle_open_about(&self) {
         let about = adw::AboutDialog::builder()
             .application_name("Obelisk")
+            .application_icon("io.github.irelandqlan.Obelisk")
             .version(env!("CARGO_PKG_VERSION"))
             .developer_name("irelandqlan")
             .license_type(gtk::License::Gpl30)

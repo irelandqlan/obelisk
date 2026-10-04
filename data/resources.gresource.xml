@@ -29,4 +29,8 @@
     <file alias="info-outline-symbolic.svg"
     preprocess="xml-stripblanks">icons/info-outline-symbolic.svg</file>
   </gresource>
+  <gresource prefix="/io/github/irelandqlan/Obelisk/icons/scalable/apps">
+    <file alias="io.github.irelandqlan.Obelisk.svg"
+    preprocess="xml-stripblanks">io.github.irelandqlan.Obelisk.svg</file>
+  </gresource>
 </gresources>

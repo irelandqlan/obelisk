@@ -107,7 +107,7 @@ impl AppModel {
     pub(crate) fn handle_verify_instance(&mut self, sender: &ComponentSender<AppModel>) {
         if let Some(inst) = self.selected_instance.and_then(|i| self.instances.get(i)) {
             let instance = inst.clone();
-            self.launch_after_download = false;
+            self.launch_after_download = None;
             self.verifying_loading = true;
             self.instance_summary
                 .emit(SummaryInput::SetVerifyingLoading(true));
@@ -177,52 +177,7 @@ impl AppModel {
             options.max_memory = self.config.max_memory;
             options.min_memory = self.config.min_memory;
 
-            // Auto-refresh active Microsoft account token if expired or expiring soon (< 1 hour)
-            if let Some(active_account) = get_active_account(&self.config) {
-                if active_account.account_type == crate::backend::auth::microsoft::AccountType::Microsoft {
-                    let status = crate::backend::auth::account::verify_account_status(active_account);
-                    if matches!(status, crate::backend::auth::account::AccountStatus::Expired | crate::backend::auth::account::AccountStatus::ExpiringSoon) {
-                        let client_id = self.config.microsoft_client_id.clone().unwrap_or_else(|| "00000000402b5328".to_string());
-                        if let Ok(refreshed) = crate::backend::auth::account::refresh_single_account(active_account, &client_id) {
-                            crate::backend::auth::account::add_account(&mut self.config, refreshed);
-                            let _ = self.config.save();
-                            self.account_view.emit(crate::frontend::views::account::AccountInput::UpdateConfig(self.config.clone()));
-                        }
-                    }
-                }
-            }
-
-            options.account = get_active_account(&self.config).cloned();
-
-            if !check_instance_assets(&instance, &options) {
-                sender.input(AppMsg::SelectInstance(idx));
-                self.launch_after_download = true;
-                let sender_clone = sender.input_sender().clone();
-                crate::backend::core::tasks::spawn_io(move || {
-                    if let Some(mc_version) = &instance.minecraft_version {
-                        match find_version_by_id(mc_version) {
-                            Ok(Some(v)) => {
-                                let (loader, loader_ver) = instance.get_loader_info();
-                                let _ = sender_clone
-                                    .send(AppMsg::DownloadStart(v.raw, loader, loader_ver));
-                            }
-                            _ => {
-                                let _ = sender_clone.send(AppMsg::ConsoleLog(
-                                    instance.path.clone(),
-                                    format!(
-                                        "Could not resolve Minecraft version {} for download.\n",
-                                        mc_version
-                                    ),
-                                ));
-                                let _ = sender_clone
-                                    .send(AppMsg::DownloadError("Version resolution failed".into()));
-                            }
-                        }
-                    }
-                });
-                return;
-            }
-
+            self.launch_after_download = Some(instance.path.clone());
             self.instance_statuses
                 .insert(instance.path.clone(), InstanceStatus::Loading);
             self.rebuild_overview();
@@ -240,10 +195,67 @@ impl AppModel {
             let sender_clone = sender.input_sender().clone();
             let game_process = self.get_game_process(&instance.path);
             let instance_path = instance.path.clone();
+            let config_clone = self.config.clone();
+            let initial_account = get_active_account(&self.config).cloned();
+
             thread::spawn(move || {
                 let start_time_chrono = Utc::now();
                 let start_time = std::time::Instant::now();
                 let mut options = options;
+
+                // 1. Auto-refresh active Microsoft account token in background if expired or expiring soon (< 1 hour)
+                let mut active_account = initial_account;
+                if let Some(ref account) = active_account {
+                    if account.account_type == crate::backend::auth::microsoft::AccountType::Microsoft {
+                        let status = crate::backend::auth::account::verify_account_status(account);
+                        if matches!(status, crate::backend::auth::account::AccountStatus::Expired | crate::backend::auth::account::AccountStatus::ExpiringSoon) {
+                            let client_id = config_clone.microsoft_client_id.clone().unwrap_or_else(|| "00000000402b5328".to_string());
+                            if let Ok(refreshed) = crate::backend::auth::account::refresh_single_account(account, &client_id) {
+                                let _ = sender_clone.send(AppMsg::RefreshAccountResult(Ok(refreshed.clone())));
+                                active_account = Some(refreshed);
+                            }
+                        }
+                    }
+                }
+                options.account = active_account;
+
+                // 2. Pre-launch asset & component check in background
+                if !check_instance_assets(&instance, &options) {
+                    let _ = sender_clone.send(AppMsg::ConsoleLog(
+                        instance_path.clone(),
+                        "Missing game components or libraries. Starting download...\n".to_string(),
+                    ));
+                    let _ = sender_clone.send(AppMsg::ProcessFinished(
+                        instance_path.clone(),
+                        0,
+                        start_time_chrono,
+                        Utc::now(),
+                    ));
+
+                    if let Some(mc_version) = &instance.minecraft_version {
+                        match find_version_by_id(mc_version) {
+                            Ok(Some(v)) => {
+                                let (loader, loader_ver) = instance.get_loader_info();
+                                let _ = sender_clone
+                                    .send(AppMsg::DownloadStart(v.raw, loader, loader_ver));
+                            }
+                            _ => {
+                                let _ = sender_clone.send(AppMsg::ConsoleLog(
+                                    instance_path.clone(),
+                                    format!(
+                                        "Could not resolve Minecraft version {} for download.\n",
+                                        mc_version
+                                    ),
+                                ));
+                                let _ = sender_clone.send(AppMsg::ShowToast(format!("Failed to resolve Minecraft version {}", mc_version)));
+                                let _ = sender_clone
+                                    .send(AppMsg::DownloadError("Version resolution failed".into()));
+                            }
+                        }
+                    }
+                    return;
+                }
+
                 let max_mem = options.max_memory;
                 let min_mem = options.min_memory;
 
@@ -269,6 +281,7 @@ impl AppModel {
                                 instance_path.clone(),
                                 format!("No suitable Java {} found automatically. Please install it or set a custom Java path in instance settings.\n", required_ver),
                             ));
+                            let _ = sender_clone.send(AppMsg::ShowToast(format!("Java {} not found for '{}'. Please install Java in Settings.", required_ver, instance.name)));
                             let _ = sender_clone.send(AppMsg::ProcessFinished(
                                 instance_path.clone(),
                                 0,
@@ -306,10 +319,25 @@ impl AppModel {
                         let ip_clone = instance_path.clone();
                         if let Some(out) = stdout {
                             thread::spawn(move || {
-                                let reader = BufReader::new(out);
-                                for line in reader.lines().map_while(Result::ok) {
-                                    let _ = s_clone
-                                        .send(AppMsg::ConsoleLog(ip_clone.clone(), format!("{}\n", line)));
+                                let mut reader = BufReader::new(out);
+                                let mut line = String::new();
+                                let mut batch = String::new();
+                                let mut last_send = std::time::Instant::now();
+
+                                while let Ok(n) = reader.read_line(&mut line) {
+                                    if n == 0 {
+                                        break;
+                                    }
+                                    batch.push_str(&line);
+                                    line.clear();
+
+                                    if batch.len() > 4096 || last_send.elapsed() >= std::time::Duration::from_millis(50) {
+                                        let _ = s_clone.send(AppMsg::ConsoleLog(ip_clone.clone(), std::mem::take(&mut batch)));
+                                        last_send = std::time::Instant::now();
+                                    }
+                                }
+                                if !batch.is_empty() {
+                                    let _ = s_clone.send(AppMsg::ConsoleLog(ip_clone, batch));
                                 }
                             });
                         }
@@ -318,12 +346,25 @@ impl AppModel {
                         let ip_clone_err = instance_path.clone();
                         if let Some(err) = stderr {
                             thread::spawn(move || {
-                                let reader = BufReader::new(err);
-                                for line in reader.lines().map_while(Result::ok) {
-                                    let _ = s_clone_err.send(AppMsg::ConsoleLog(
-                                        ip_clone_err.clone(),
-                                        format!("{}\n", line),
-                                    ));
+                                let mut reader = BufReader::new(err);
+                                let mut line = String::new();
+                                let mut batch = String::new();
+                                let mut last_send = std::time::Instant::now();
+
+                                while let Ok(n) = reader.read_line(&mut line) {
+                                    if n == 0 {
+                                        break;
+                                    }
+                                    batch.push_str(&line);
+                                    line.clear();
+
+                                    if batch.len() > 4096 || last_send.elapsed() >= std::time::Duration::from_millis(50) {
+                                        let _ = s_clone_err.send(AppMsg::ConsoleLog(ip_clone_err.clone(), std::mem::take(&mut batch)));
+                                        last_send = std::time::Instant::now();
+                                    }
+                                }
+                                if !batch.is_empty() {
+                                    let _ = s_clone_err.send(AppMsg::ConsoleLog(ip_clone_err, batch));
                                 }
                             });
                         }
@@ -394,6 +435,7 @@ impl AppModel {
                             instance_path.clone(),
                             format!("Launch failed: {}\n", e),
                         ));
+                        let _ = sender_clone.send(AppMsg::ShowToast(format!("Failed to launch '{}': {}", instance.name, e)));
                         let _ = sender_clone.send(AppMsg::ProcessFinished(
                             instance_path.clone(),
                             0,
@@ -408,6 +450,7 @@ impl AppModel {
 
     pub(crate) fn handle_console_log(&mut self, path: PathBuf, msg: String) {
         let is_active = Some(&path) == self.get_active_instance_path().as_ref();
+        let had_logs = self.get_active_instance_has_logs();
 
         self.instance_logs
             .entry(path.clone())
@@ -420,15 +463,13 @@ impl AppModel {
             let mut iter = buf.end_iter();
             buf.insert(&mut iter, &msg);
 
-            if is_active {
-                let inst = self.instances.get(self.selected_instance.unwrap()).cloned();
-                let status = self.get_instance_status(&path);
-                self.instance_summary
-                    .emit(SummaryInput::Update(Box::new(inst), status));
+            // Only notify console if it transitions from empty to having logs.
+            // Do NOT re-render summary or re-bind TextBuffer on every log line!
+            if is_active && !had_logs {
                 self.instance_console.emit(ConsoleInput::Update {
                     buffer: buf,
-                    status,
-                    has_any_logs: self.get_active_instance_has_logs(),
+                    status: self.get_instance_status(&path),
+                    has_any_logs: true,
                 });
             }
         }
