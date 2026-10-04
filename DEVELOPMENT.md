@@ -38,11 +38,12 @@ Obelisk uses a streamlined two-branch workflow:
 
 - **`develop`** *(Default working branch)*:
   - All day-to-day coding, experimentation, and bug fixes happen here.
-  - Commits pushed here trigger fast CI tests (~45 seconds) to ensure code builds and tests pass.
+  - You can push small commits freely without triggering noisy CI runs.
 - **`master`** *(Production / Release branch)*:
   - Represents stable, release-ready code.
-  - Do **not** commit directly to `master`. All changes enter `master` through `develop` merges.
-  - Pushing a version tag (`v*`) triggers the containerized Flatpak release builder on GitHub Actions.
+  - All changes enter `master` through `just merge-to-master` (which verifies tests locally first).
+  - Merges to `master` and pull requests trigger cached CI test runs on GitHub Actions.
+  - Pushing a version tag (`v*`) triggers the containerized Flatpak release builder.
 
 ---
 
