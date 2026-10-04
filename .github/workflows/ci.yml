@@ -10,18 +10,19 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
+    container:
+      image: fedora:latest
 
     steps:
+      - name: Install System Dependencies
+        run: |
+          dnf install -y git gcc pkgconf-pkg-config openssl-devel gtk4-devel libadwaita-devel cargo rust
+
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Rust Toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install System Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pkg-config libssl-dev libgtk-4-dev libadwaita-1-dev
+      - name: Configure Git Safe Directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Run Tests
         run: cargo test
