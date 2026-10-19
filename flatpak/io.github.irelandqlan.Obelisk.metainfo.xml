@@ -12,8 +12,17 @@
       Compatible with PolyMC, Prism Launcher, and MultiMC formats.
     </p>
   </description>
+  <developer id="io.github.irelandqlan">
+    <name>irelandqlan</name>
+  </developer>
   <launchable type="desktop-id">io.github.irelandqlan.Obelisk.desktop</launchable>
   <url type="homepage">https://github.com/irelandqlan/obelisk</url>
+  <url type="bugtracker">https://github.com/irelandqlan/obelisk/issues</url>
+  <url type="vcs-browser">https://github.com/irelandqlan/obelisk</url>
+  <branding>
+    <color type="primary" scheme_preference="light">#00aa3a</color>
+    <color type="primary" scheme_preference="dark">#222933</color>
+  </branding>
   <screenshots>
     <screenshot type="default">
       <caption>The main overview</caption>

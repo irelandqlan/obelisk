@@ -394,7 +394,9 @@ impl AppModel {
                                 ));
 
                                 if !exit_status.success() {
-                                    let flatpak_tip = if is_flatpak {
+                                    let flatpak_tip = if crate::config::is_portal_path(&instance_path) {
+                                        "\n⚠️ Portal Path Detected: This instance is stored in a virtual document portal path (/run/user/.../doc/).\nJava cannot initialize its working directory inside virtual FUSE mounts ('Could not determine current working directory').\nSolution: Use Flatseal (or 'flatpak override --user --filesystem=/path') to grant direct access to your real drive, then update the path in Settings."
+                                    } else if is_flatpak {
                                         "\nNote: You are running Obelisk in Flatpak. Ensure Java paths are accessible to the sandbox (e.g. within ~/.var/app/ or system runtime)."
                                     } else {
                                         ""

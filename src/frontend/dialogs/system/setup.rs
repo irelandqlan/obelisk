@@ -349,23 +349,55 @@ impl SimpleComponent for SetupDialog {
                             set_selection_mode: gtk::SelectionMode::None,
 
                             adw::ActionRow {
-                                #[watch]
-                                set_title: &if let Some(ref path) = model.config.instances_path {
-                                    format!("Selected: {}", path.display())
-                                } else {
-                                    "No directory selected".to_string()
+                                set_title: "Default App Storage (Recommended)",
+                                set_subtitle: &format!("{}", crate::config::Config::default_instances_dir().display()),
+                                add_prefix = &gtk::Image {
+                                    set_icon_name: Some("folder-saved-search-symbolic"),
                                 },
+                                add_suffix = &gtk::Button {
+                                    set_label: "Use Default",
+                                    set_valign: gtk::Align::Center,
+                                    set_css_classes: &["suggested-action"],
+                                    connect_clicked[sender] => move |_| {
+                                        let default_path = crate::config::Config::default_instances_dir();
+                                        sender.input(SetupInput::SetInstancesPath(default_path));
+                                    }
+                                }
+                            },
+
+                            adw::ActionRow {
+                                set_title: "Custom Folder or External Drive",
                                 #[watch]
-                                set_subtitle: if model.config.instances_path.is_some() {
-                                    "Your instances directory is valid and active."
+                                set_subtitle: &if let Some(ref path) = model.config.instances_path {
+                                    if crate::config::is_portal_path(path) {
+                                        format!("⚠️ Virtual portal path: {}\n(Requires Flatseal permission for game launch)", path.display())
+                                    } else {
+                                        format!("Selected: {}", path.display())
+                                    }
                                 } else {
-                                    "Please select an isolated folder for your instances."
+                                    "No custom folder chosen".to_string()
                                 },
                                 add_prefix = &gtk::Image {
                                     #[watch]
-                                    set_icon_name: Some(if model.config.instances_path.is_some() { "object-select-symbolic" } else { "dialog-warning-symbolic" }),
+                                    set_icon_name: Some(if model.config.instances_path.is_some() {
+                                        if model.config.instances_path.as_ref().map(|p| crate::config::is_portal_path(p)).unwrap_or(false) {
+                                            "dialog-warning-symbolic"
+                                        } else {
+                                            "object-select-symbolic"
+                                        }
+                                    } else {
+                                        "folder-open-symbolic"
+                                    }),
                                     #[watch]
-                                    set_css_classes: if model.config.instances_path.is_some() { &["success"] } else { &["warning"] },
+                                    set_css_classes: if model.config.instances_path.is_some() {
+                                        if model.config.instances_path.as_ref().map(|p| crate::config::is_portal_path(p)).unwrap_or(false) {
+                                            &["warning"]
+                                        } else {
+                                            &["success"]
+                                        }
+                                    } else {
+                                        &["dim-label"]
+                                    },
                                 },
                                 add_suffix = &gtk::Button {
                                     set_label: "Browse Folder",

@@ -1,7 +1,7 @@
 use crate::backend::auth::microsoft::Account;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[serde(rename_all = "lowercase")]
@@ -71,8 +71,25 @@ impl Default for Config {
     }
 }
 
+/// Checks if a path is located inside the XDG Document Portal FUSE mount (/run/user/<uid>/doc/).
+pub fn is_portal_path(path: &Path) -> bool {
+    let s = path.to_string_lossy();
+    s.starts_with("/run/user/") && s.contains("/doc/")
+}
+
 impl Config {
+    pub fn default_instances_dir() -> PathBuf {
+        Self::get_data_dir().join("instances")
+    }
+
     pub fn get_data_dir() -> PathBuf {
+        if let Some(base) = directories::BaseDirs::new() {
+            let dir = base.data_local_dir().join("obelisk");
+            if dir.exists() {
+                return dir;
+            }
+        }
+
         if let Ok(home) = std::env::var("HOME") {
             let host_obelisk = PathBuf::from(&home).join(".local/share/obelisk");
             if host_obelisk.exists() {
@@ -105,6 +122,13 @@ impl Config {
     }
 
     pub fn get_cache_dir() -> PathBuf {
+        if let Some(base) = directories::BaseDirs::new() {
+            let dir = base.cache_dir().join("obelisk");
+            if dir.exists() {
+                return dir;
+            }
+        }
+
         if let Ok(home) = std::env::var("HOME") {
             let host_obelisk = PathBuf::from(&home).join(".cache/obelisk");
             if host_obelisk.exists() {
@@ -137,8 +161,13 @@ impl Config {
     }
 
     fn config_path() -> PathBuf {
-        // First check directly under host $HOME/.config so Flatpak (running with --filesystem=host)
-        // shares and detects the config from the native `cargo run` version rather than isolating it.
+        if let Some(base) = directories::BaseDirs::new() {
+            let path = base.config_dir().join("obelisk").join("config.json");
+            if path.exists() {
+                return path;
+            }
+        }
+
         if let Ok(home) = std::env::var("HOME") {
             let host_obelisk = PathBuf::from(&home).join(".config/obelisk/config.json");
             if host_obelisk.exists() {
@@ -180,7 +209,14 @@ impl Config {
         let path = Self::config_path();
         if path.exists() {
             if let Ok(content) = fs::read_to_string(path) {
-                if let Ok(config) = serde_json::from_str(&content) {
+                if let Ok(mut config) = serde_json::from_str::<Config>(&content) {
+                    // Auto-heal if minecraft_data_path points to an invalid/inaccessible path
+                    if !config.minecraft_data_path.exists() {
+                        let valid_data = Self::get_data_dir();
+                        if valid_data.exists() {
+                            config.minecraft_data_path = valid_data;
+                        }
+                    }
                     return config;
                 }
             }
@@ -244,5 +280,14 @@ mod tests {
         assert_eq!(parsed.preferred_view_type, PreferredViewType::List);
         assert_eq!(parsed.sort_by, SortBy::LastPlayed);
         assert_eq!(parsed.max_memory, 8192);
+    }
+
+    #[test]
+    fn test_is_portal_path() {
+        assert!(is_portal_path(Path::new("/run/user/1000/doc/68d020ae/instances")));
+        assert!(is_portal_path(Path::new("/run/user/1000/doc/abc/instances/skyblock")));
+        assert!(!is_portal_path(Path::new("/mnt/Games02/Minecraft/instances")));
+        assert!(!is_portal_path(Path::new("/run/media/user/SSD/instances")));
+        assert!(!is_portal_path(Path::new("/home/user/.var/app/io.github.irelandqlan.Obelisk/data/obelisk/instances")));
     }
 }

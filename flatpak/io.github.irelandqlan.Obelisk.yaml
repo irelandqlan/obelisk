@@ -12,9 +12,8 @@ finish-args:
   - --device=dri
   - --share=network
   - --socket=pulseaudio
-  - --filesystem=host
-  - --talk-name=org.freedesktop.Notifications
-  - --talk-name=org.freedesktop.secrets
+  - --filesystem=/media
+  - --filesystem=/run/media
 
 build-options:
   append-path: /usr/lib/sdk/rust-stable/bin

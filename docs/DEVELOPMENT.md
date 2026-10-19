@@ -49,7 +49,7 @@ just flatpak-run
 just flatpak-bundle
 ```
 
-> **Note on configuration**: Obelisk detects if it is running inside Flatpak with `--filesystem=host` and prioritizes your host `~/.config/obelisk/` and `~/.local/share/obelisk/` directories. This means that the native `cargo run` and Flatpak version share the same accounts, instance settings, and game assets.
+> **Note on configuration**: When running inside Flatpak, Obelisk uses standard sandboxed XDG directories (`~/.var/app/io.github.irelandqlan.Obelisk/data` and `~/.var/app/io.github.irelandqlan.Obelisk/config`). Native `cargo run` uses `~/.local/share/obelisk` and `~/.config/obelisk`.
 
 ## Automated Releases
 

@@ -63,7 +63,7 @@ pub enum SettingsInput {
     UpdateConfig(Config),
     SetPage(String),
     SetInstancesPath(PathBuf),
-    ClearInstancesPath,
+    ResetInstancesPath,
     SetSharedPath(PathBuf),
     ClearSharedPath,
     SetMaxMemory(u32),
@@ -129,7 +129,13 @@ impl SimpleComponent for SettingsDialog {
                             #[watch]
                             set_subtitle: &model.config.instances_path
                                 .as_ref()
-                                .map(|p| p.to_string_lossy().to_string())
+                                .map(|p| {
+                                    if crate::config::is_portal_path(p) {
+                                        format!("⚠️ Virtual portal path: {}\n(Requires Flatseal permission to launch)", p.display())
+                                    } else {
+                                        p.to_string_lossy().to_string()
+                                    }
+                                })
                                 .unwrap_or_else(|| "Not set".to_string()),
 
                             add_suffix = &gtk::Box {
@@ -139,7 +145,7 @@ impl SimpleComponent for SettingsDialog {
 
                                 gtk::Button {
                                     set_label: "Select",
-                                    set_tooltip_text: Some("Select instance folder"),
+                                    set_tooltip_text: Some("Select custom instance folder"),
                                     connect_clicked[sender] => move |_| {
                                         let dialog = gtk::FileDialog::builder().title("Select Instance Folder").modal(true).build();
                                         let sender = sender.clone();
@@ -150,12 +156,12 @@ impl SimpleComponent for SettingsDialog {
                                 },
 
                                 gtk::Button {
-                                    set_icon_name: "edit-clear-symbolic",
+                                    set_icon_name: "edit-undo-symbolic",
                                     set_css_classes: &["flat", "circular"],
-                                    set_tooltip_text: Some("Clear instance folder path"),
+                                    set_tooltip_text: Some("Reset to default instance folder"),
                                     #[watch]
-                                    set_sensitive: model.config.instances_path.is_some(),
-                                    connect_clicked => SettingsInput::ClearInstancesPath,
+                                    set_sensitive: model.config.instances_path.as_ref() != Some(&crate::config::Config::default_instances_dir()),
+                                    connect_clicked => SettingsInput::ResetInstancesPath,
                                 }
                             }
                         },
@@ -458,8 +464,8 @@ impl SimpleComponent for SettingsDialog {
                     .output(SettingsOutput::ConfigUpdated(self.config.clone()))
                     .unwrap();
             }
-            SettingsInput::ClearInstancesPath => {
-                self.config.instances_path = None;
+            SettingsInput::ResetInstancesPath => {
+                self.config.instances_path = Some(crate::config::Config::default_instances_dir());
                 let _ = self.config.save();
                 sender
                     .output(SettingsOutput::ConfigUpdated(self.config.clone()))
