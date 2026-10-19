@@ -31,6 +31,7 @@
   </screenshots>
   <content_rating type="oars-1.1" />
   <releases>
+    <release version="0.6.2" date="2026-10-18" />
     <release version="0.6.1" date="2026-10-03">
       <description>
         <p>Update application namespace to io.github.irelandqlan.Obelisk, streamline project name to Obelisk, and improve host configuration detection under Flatpak.</p>
